@@ -1,0 +1,5 @@
+/home/fenix/CPP/WordsCount/CMakeFiles/rebuild_cache.dir
+/home/fenix/CPP/WordsCount/CMakeFiles/edit_cache.dir
+/home/fenix/CPP/WordsCount/CMakeFiles/words.dir
+/home/fenix/CPP/WordsCount/CMakeFiles/count.dir
+/home/fenix/CPP/WordsCount/CMakeFiles/lines.dir

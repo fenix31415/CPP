@@ -1,0 +1,7 @@
+/home/fenix/CPP/Long/CMakeFiles/rebuild_cache.dir
+/home/fenix/CPP/Long/CMakeFiles/hello.dir
+/home/fenix/CPP/Long/CMakeFiles/sub.dir
+/home/fenix/CPP/Long/CMakeFiles/pipe.dir
+/home/fenix/CPP/Long/CMakeFiles/mul.dir
+/home/fenix/CPP/Long/CMakeFiles/add.dir
+/home/fenix/CPP/Long/CMakeFiles/edit_cache.dir

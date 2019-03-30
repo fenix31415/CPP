@@ -1,0 +1,1 @@
+ld CMakeFiles/pipe.dir/pipe.asm.o -o pipe
