@@ -1,0 +1,20 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/fenix/CPP/HW/CPP/search.cpp
+iostream
+-
+string
+-
+cstdio
+-
+cstdlib
+-
+vector
+-
+
