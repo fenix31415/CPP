@@ -30,9 +30,15 @@ void prefix_find(FILE* fp, char* c, std::vector<int> *p) {
 	}
 	std::cout << "NO";
 }
-
+unsigned int const MAX_DIGIT = (unsigned int)4294967295;
+bool isCarry(unsigned int a, unsigned int b){
+    return MAX_DIGIT - a < b;
+}
 int main(int argc, char* argv[]) {
-	FILE* fp = std::fopen(argv[1], "r");
+	unsigned int a = 4294967296;
+	unsigned int b = 2;
+	std::cout<<a;
+	/*FILE* fp = std::fopen(argv[1], "r");
 	if (!fp) {
 		std::cout<<"Can't open";
 		return 0;
@@ -44,5 +50,5 @@ int main(int argc, char* argv[]) {
 	p.resize(cLen,0);
 	prefix_find(fp, argv[2], &p);
 
-	std::fclose(fp);
+	std::fclose(fp);*/
 }
