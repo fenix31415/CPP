@@ -25,6 +25,10 @@ big_integer::big_integer(int a)
     sign = a >= 0;
     if (a == 0)
         return;
+    if (a == INT32_MIN) {
+        numbers.push_back(a);
+        return;
+    }
     numbers.push_back(std::abs(a));
 }
 
@@ -67,7 +71,7 @@ void del_nulls(big_integer& a) {
         a.numbers.pop_back();
 }
 
-big_integer& big_integer::operator+=(big_integer const& rhs)
+big_integer& big_integer::operator+=(big_integer const&     rhs)
 {
     if (sign != rhs.sign)
     {
@@ -365,6 +369,49 @@ big_integer& big_integer::operator%=(big_integer const& rhs)
     *this = r;
     del_nulls(*this);
     return *this;
+}
+
+void add (big_integer& x, dig d)
+{
+    if (!x.sign)
+    {
+        //big_integer tmp = rhs - (-*this);
+        //*this = tmp;
+        //return *this;
+    }
+
+    //a*b>=0
+    bool carry = false;
+    for (size_t i = 0; i < std::max(x.numbers.size(), (size_t)1); i++)
+    {
+        if (x.numbers.size() == i)
+            x.numbers.push_back(0);
+
+        dig a = x.numbers[i];
+        dig b = 0;
+        if(1 > i)
+            b = d;
+
+        bool newcarry = false;
+
+        if(a < MAX_DIGIT) {
+            a += carry;
+        } else {
+            if(b < MAX_DIGIT) {
+                b += carry;
+            } else {
+                newcarry = true;
+                a = 0;
+            }
+        }
+        newcarry = newcarry || isCarry(a,b);
+        a += b;
+        carry = newcarry;
+        x.numbers[i] = a;
+    }
+    if (carry)
+        x.numbers.push_back(carry);
+    del_nulls(x);
 }
 
 void to_binary(big_integer &a, size_t size) {

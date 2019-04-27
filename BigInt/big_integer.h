@@ -51,6 +51,7 @@ struct big_integer
     friend void divide(big_integer& x, big_integer const& y, big_integer& q, big_integer& r);
     friend void to_binary(big_integer &a, size_t size);
     friend void back_binary(big_integer &a);
+    friend void add(big_integer &a, dig d);
 
     friend std::string to_string(big_integer const& a);
     friend std::string to_string_(big_integer const& a);
