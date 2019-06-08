@@ -4,7 +4,7 @@
 #include<vector>
 #include<fstream>
 
-int const SIZE = (1 << 10);
+int const SIZE = (1 << 20);
 
 class tree {
 public:
