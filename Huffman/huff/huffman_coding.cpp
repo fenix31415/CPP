@@ -5,32 +5,60 @@
 
 #include <iostream>
 
-using namespace std;
 const std::string ERROR_ENC_FILE = "Bad file";
 
-void tree::count_symbs(std::istream& in) {
-    unsigned char c;
-    in >> noskipws;
-
-    unsigned char buf[SIZE];
+void encode(std::istream& in, std::ostream& out) {
     while (in) {
-        in.read(reinterpret_cast<char*>(buf), SIZE);
-        size_t sz = in.gcount();
-        for (size_t i = 0; i < sz; i++) {
-            c = buf[i];
-            counts[c]++;
-        }
+        tree current;
+        out.put('\0');
+        current.read_buf(in);
+        current.init_tree();
+        current.write_tree(out);
+        current.encode(out);
+    }
+    out.put('\1');
+}
+
+void decode(std::istream& in, std::ostream& out) {
+    char cc;
+    while (in >> cc) {
+        if(cc == '\1')
+            break;
+        tree current;
+        current.read_tree(in);
+        current.decode(in, out);
     }
 }
 
-tree tree::init(std::istream& in) {
-    this->count_symbs(in);
+void tree::count_symbs() {
+    unsigned char c;
+    size_t sz = cur_bufsiz;
+    for (size_t i = 0; i < sz; i++) {
+        c = buffer[i];
+        counts[c]++;
+    }
+}
+
+void tree::read_buf(std::istream& in) {
+    in >> std::noskipws;
+    in.read(buffer, SIZE);
+    cur_bufsiz = in.gcount();
+}
+
+void tree::nullcounts() {
+    for(int i = 0; i < 256; ++i)
+        counts[i] = 0;
+}
+
+tree tree::init_tree() {
+    nullcounts();
+    count_symbs();
 
     std::set <std::pair <int, int>> Q;
     for (int i = 0; i < 256; i++)
         if (counts[i]) {
             Q.insert({ counts[i], data.size() });
-            data.push_back(node(0, i));
+            data.push_back(node(true, i));
         }
     while (Q.size() > 1) {
         std::pair <int, int> a = *Q.begin();
@@ -38,16 +66,19 @@ tree tree::init(std::istream& in) {
         std::pair <int, int> b = *Q.begin();
         Q.erase(Q.begin());
         Q.insert({ a.first + b.first, data.size() });
-        data.push_back(node(1 + std::max(data[a.second].depth, data[b.second].depth), 0, a.second, b.second));
+        data.push_back(node(false,
+                0, a.second, b.second));
     }
+    if (Q.size() == 0)
+        data.push_back(node(true, 'a'));
     root = data.size() - 1;
     return *this;
 }
 
-void tree::parse_vertexes(int i, vector <bool> & edges, string & symbols, int & e, int & s) {
+void tree::parse_vertexes(int i, std::vector <bool> & edges, std::string & symbols, int & e, int & s) {
     data.push_back(node());
     if (edges[e++]) {
-        data[i] = node(0, symbols[s++]);
+        data[i] = node(true, symbols[s++]);
     } else {
         data[i].left = data.size();
         parse_vertexes(data.size(), edges, symbols, e, s);
@@ -56,38 +87,45 @@ void tree::parse_vertexes(int i, vector <bool> & edges, string & symbols, int & 
     }
 }
 
-tree tree::read_tree(istream& in) {
+tree tree::read_tree(std::istream& in) {
+    nullcounts();
     std::vector<bool> edges;
-    string symbols = "";
+    std::string symbols = "";
     int sz, alph;
+    in >> std::skipws;
     in >> sz;
     if (!in)
-        throw runtime_error(ERROR_ENC_FILE);
+        throw std::runtime_error(ERROR_ENC_FILE);
+
     in >> alph;
     if (!in)
-        throw runtime_error(ERROR_ENC_FILE);
+        throw std::runtime_error(ERROR_ENC_FILE);
     unsigned char c;
-    in >> noskipws >> c;
+    in >> std::noskipws >> c;
     if (!in)
-        throw runtime_error(ERROR_ENC_FILE);
+        throw std::runtime_error(ERROR_ENC_FILE);
     if (c != ' ' || sz < 0 || alph < 0)
-        throw runtime_error(ERROR_ENC_FILE);
+        throw std::runtime_error(ERROR_ENC_FILE);
+
+    root = 0;
+    if(sz == 0 && alph == 0)
+        root = -1;
     while (sz) {
        in >> c;
        if (c != '1' && c != '0' || !in)
-           throw runtime_error(ERROR_ENC_FILE);
+           throw std::runtime_error(ERROR_ENC_FILE);
        edges.push_back(c == '1');
        --sz;
     }
     while (alph) {
         in >> c;
-        if (!(0 <= c && c < 256) || (alph && !in)) throw runtime_error(ERROR_ENC_FILE);
+        if (!(0 <= c && c < 256) || (alph && !in))
+            throw std::runtime_error(ERROR_ENC_FILE);
         symbols.push_back(c);
         --alph;
     }
-    root = 0;
     if (edges.empty() && !symbols.empty()) {
-        data = { node(0, symbols[0]) };
+        data = { node(true, symbols[0]) };
     } else {
         int e, s;
         e = s = 0;
@@ -124,6 +162,8 @@ void tree::write_tree(std::ostream& out) {
         dfs_code(output, root, out);
         tree_size = output.size();
         dfs_symbs(output, root, out);
+    } else {
+        output = { 'a' };
     }
     out << tree_size << ' ' << output.size() - tree_size << ' ';
     for (auto c : output)
@@ -131,9 +171,8 @@ void tree::write_tree(std::ostream& out) {
 }
 
 int tree::generate_code(int i, std::vector <std::vector <bool>> & code, std::vector <bool> & st) {
-    if (data[i].depth == 0) {
+    if (data[i].isLeaf) {
         code[data[i].c] = st;
-        //std::cout<<st.size() << counts[i]<<i<<"\n";
         return st.size() * counts[i];
     } else {
         st.push_back(0);
@@ -145,74 +184,74 @@ int tree::generate_code(int i, std::vector <std::vector <bool>> & code, std::vec
     }
 }
 
-void tree::encode(std::istream& in, ostream& out) {
-    auto begin = out.tellp();
-    out.put(' ');
-    if(data.empty()) {
-        return;
-    }
-    std::vector<vector<bool>> code(256);
+void tree::encode(std::ostream& out) {
+    std::vector<std::vector<bool>> code(256);
     std::vector<bool> st;
-    int lenCode = generate_code(root, code, st);
-    //std::cout<<lenCode<<"\n";
-    if (data.size() == 1)
+    generate_code(root, code, st);
+    int lenCode = 0;
+    for(int i = 0; i < 256; ++i) {
+        lenCode += counts[i] * code[i].size();
+    }
+    if (data.size() == 1) {
         code[data[0].c] = { 0 };
-
-    unsigned char buf[SIZE];
+        lenCode = counts[data[0].c];
+    }
+    out << ' ' << lenCode << ' ';
     char cur = 0;
     int cou = 0;
-    while (in) {
-        in.read(reinterpret_cast<char*>(buf), SIZE);
-        size_t sz = in.gcount();
-        for (size_t i = 0; i < sz; i++) {
-            const auto& seq = code[buf[i]];
-            for (bool b : seq) {
-                cur |= (b << cou);
-                cou++;
-                if (cou == 8) {
-                    out.put(cur);
-                    cur = 0;
-                    cou = 0;
-                }
+    for (size_t i = 0; i < cur_bufsiz; i++) {
+        const auto& seq = code[buffer[i]];
+        for (bool b : seq) {
+            cur |= (b << cou);
+            cou++;
+            if (cou == 8) {
+                out.put(cur);
+                cur = 0;
+                cou = 0;
             }
         }
     }
     if (cou) {
         out.put(cur);
-        cou = 8 - cou;
     }
-    out.seekp(begin);
-    out.put(char(cou));
 }
 
-void tree::decode(istream& in, ostream& out) {
+void tree::decode(std::istream& in, std::ostream& out) {
     if (root == -1) {
         return;
     }
     int v = root;
-    char buf[SIZE];
-    char bad_bits;
-    in >> noskipws >> bad_bits;
-    if (!in) throw runtime_error(ERROR_ENC_FILE);
-    while(in) {
-        in.read(reinterpret_cast<char*>(buf), SIZE);
-        size_t sz = in.gcount();
-        for (size_t i = 0; i < sz; i++) {
-            unsigned char symbol = buf[i];
-            for (size_t j = 0; j < 8 - (!in && i == sz - 1) * static_cast<int>(bad_bits); j++) {
-                bool c = static_cast<bool>(1 & (symbol >> j));
-                if (data.size() > 1)
-                    if (c == 0)
-                        v = data[v].left;
-                    else v = data[v].right;
-                if (v == -1 || j > 8) {
-                    throw runtime_error(ERROR_ENC_FILE);
-                }
-                if (data[v].depth == 0) {
-                    out.put(data[v].c);
-                    v = root;
-                }
+    char cc;
+    int count_bits;
+    in >> cc;
+    if(cc != ' ')
+        throw std::runtime_error(ERROR_ENC_FILE);
+    in >> count_bits;
+    if (!in)
+        throw std::runtime_error(ERROR_ENC_FILE);
+    in >> cc;
+    if(cc != ' ')
+        throw std::runtime_error(ERROR_ENC_FILE);
+    while (in && count_bits > 0) {
+        char c;
+        in >> std::noskipws >> c;
+        unsigned char symbol = c;
+        for (size_t j = 0; j < 8 - (count_bits < 8) * (8 - count_bits); j++) {
+            bool c = static_cast<bool>(1 & (symbol >> j));
+            if (data.size() > 1) {
+                if (c == 0)
+                    v = data[v].left;
+                else
+                    v = data[v].right;
+            }
+            if (v == -1 || j > 8) {
+                throw std::runtime_error(ERROR_ENC_FILE);
+            }
+            if (data[v].isLeaf) {
+                out.put(data[v].c);
+                v = root;
             }
         }
+        count_bits -= 8;
     }
 }
