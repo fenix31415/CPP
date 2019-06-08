@@ -7,6 +7,29 @@
 
 const std::string ERROR_ENC_FILE = "Bad file";
 
+void encode(std::istream& in, std::ostream& out) {
+    while (in) {
+        tree current;
+        out.put('\0');
+        current.read_buf(in);
+        current.init_tree();
+        current.write_tree(out);
+        current.encode(out);
+    }
+    out.put('\1');
+}
+
+void decode(std::istream& in, std::ostream& out) {
+    char cc;
+    while (in >> cc) {
+        if(cc == '\1')
+            break;
+        tree current;
+        current.read_tree(in);
+        current.decode(in, out);
+    }
+}
+
 void tree::count_symbs() {
     unsigned char c;
     size_t sz = cur_bufsiz;
@@ -46,6 +69,8 @@ tree tree::init_tree() {
         data.push_back(node(false,
                 0, a.second, b.second));
     }
+    if (Q.size() == 0)
+        data.push_back(node(true, 'a'));
     root = data.size() - 1;
     return *this;
 }
@@ -81,6 +106,10 @@ tree tree::read_tree(std::istream& in) {
         throw std::runtime_error(ERROR_ENC_FILE);
     if (c != ' ' || sz < 0 || alph < 0)
         throw std::runtime_error(ERROR_ENC_FILE);
+
+    root = 0;
+    if(sz == 0 && alph == 0)
+        root = -1;
     while (sz) {
        in >> c;
        if (c != '1' && c != '0' || !in)
@@ -95,7 +124,6 @@ tree tree::read_tree(std::istream& in) {
         symbols.push_back(c);
         --alph;
     }
-    root = 0;
     if (edges.empty() && !symbols.empty()) {
         data = { node(true, symbols[0]) };
     } else {
@@ -134,6 +162,8 @@ void tree::write_tree(std::ostream& out) {
         dfs_code(output, root, out);
         tree_size = output.size();
         dfs_symbs(output, root, out);
+    } else {
+        output = { 'a' };
     }
     out << tree_size << ' ' << output.size() - tree_size << ' ';
     for (auto c : output)
@@ -155,9 +185,6 @@ int tree::generate_code(int i, std::vector <std::vector <bool>> & code, std::vec
 }
 
 void tree::encode(std::ostream& out) {
-    if(data.empty()) {
-        return;
-    }
     std::vector<std::vector<bool>> code(256);
     std::vector<bool> st;
     generate_code(root, code, st);
@@ -187,7 +214,6 @@ void tree::encode(std::ostream& out) {
     if (cou) {
         out.put(cur);
     }
-    out.put('\0');
 }
 
 void tree::decode(std::istream& in, std::ostream& out) {

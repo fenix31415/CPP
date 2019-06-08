@@ -36,4 +36,7 @@ private:
     int generate_code(int i, std::vector<std::vector<bool>> & codes, std::vector<bool> & cur);
 };
 
+void decode(std::istream& in, std::ostream& out);
+void encode(std::istream& in, std::ostream& out);
+
 #endif // HUFFMAN_CODING
