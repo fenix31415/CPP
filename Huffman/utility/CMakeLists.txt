@@ -1,4 +1,5 @@
 add_executable(utility
+		   Utility.h
 	       Utility.cpp
 )
 
