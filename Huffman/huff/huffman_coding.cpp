@@ -10,7 +10,7 @@ const std::string ERROR_ENC_FILE = "Bad file";
 
 void tree::count_symbs() {
     unsigned char c;
-    size_t sz = bufsiz;
+    size_t sz = valid_bufsiz;
     for (size_t i = 0; i < sz; i++) {
         c = buffer[i];
         ++counts[c];
@@ -22,8 +22,7 @@ void tree::nullcounts() {
         counts[i] = 0;
 }
 
-tree tree::init_tree() {
-    nullcounts();
+void tree::init_tree() {
     count_symbs();
 
     std::set <std::pair <int, int>> Q;
@@ -42,7 +41,6 @@ tree tree::init_tree() {
                 0, a.second, b.second));
     }
     root = data.size() - 1;
-    return *this;
 }
 
 void tree::parse_vertexes(int i, std::vector <bool> & edges, std::string & symbols, int & e, int & s) {
@@ -57,12 +55,10 @@ void tree::parse_vertexes(int i, std::vector <bool> & edges, std::string & symbo
     }
 }
 
-tree tree::read_tree(unsigned int sz, unsigned int alph) {
+void tree::read_tree(size_t sz, size_t alph) {
     nullcounts();
     std::vector<bool> edges;
     std::string symbols = "";
-    //in >> std::skipws;
-    //in >> sz;
     unsigned char c;
 
     if (sz < 0 || alph < 0)
@@ -72,8 +68,6 @@ tree tree::read_tree(unsigned int sz, unsigned int alph) {
     if(sz == 0 && alph == 0)
         root = -1;
 
-    //std::cout<<sz<<" "<<alph<<std::endl;
-
     while (sz) {
        c = get_next();
        if (c != '1' && c != '0')
@@ -82,8 +76,6 @@ tree tree::read_tree(unsigned int sz, unsigned int alph) {
        --sz;
     }
 
-    //std::cout<<"Hello1"<<std::endl;
-
     while (alph) {
         c = get_next();
         if (!(0 <= c && c < 256))
@@ -91,23 +83,11 @@ tree tree::read_tree(unsigned int sz, unsigned int alph) {
         symbols.push_back(c);
         --alph;
     }
-
-    //std::cout<<"Hello2"<<std::endl;
-
-    /*if (edges.empty() && !symbols.empty()) {
-        data = { node(true, symbols[0]) };
-    } else {
-        int e, s;
-        e = s = 0;
-        parse_vertexes(0, edges, symbols, e, s);
-    }*/
     if (root != -1) {
         int e, s;
         e = s = 0;
         parse_vertexes(0, edges, symbols, e, s);
     }
-    //std::cout<<"Hello3"<<std::endl;
-    return *this;
 }
 
 void tree::dfs_symbs(std::vector <unsigned char> & ans, int id) {
@@ -147,9 +127,6 @@ std::string tree::write_tree() {
     v.resize(0);
     append(v, output.size() - tree_size);
     ans.insert(ans.end(), v.begin(), v.end());
-    //std::cout<<tree_size<<" "<<output.size() - tree_size<<" treesize & ..\n";
-    //ans = std::to_string(tree_size) + " " + std::to_string(output.size() - tree_size) + " ";
-    //out << tree_size << ' ' << output.size() - tree_size << ' ';
     for (auto c : output)
         ans.push_back(c);
     return ans;
@@ -170,7 +147,7 @@ int tree::generate_code(int i, std::vector <std::vector <bool>> & code, std::vec
 }
 
 void append(std::vector<unsigned char> & v, unsigned int a) {
-    int mask = (1 << 8) - 1;
+    unsigned int mask = (1 << 8) - 1;
     for (int i = 0; i < sizeof(unsigned int); ++i) {
         unsigned char c = (unsigned char)((a & mask) >> i * 8);
         v.push_back(c);
@@ -199,18 +176,15 @@ void tree::encode(std::vector<unsigned char>& ans) {
         code[data[0].c] = { 0 };
         lenCode = counts[data[0].c];
     }
-    //out << ' ' << lenCode << ' ';
-    //std::cout<<lenCode<< " = lencode\n";
     append(ans, lenCode);
     char cur = 0;
     int cou = 0;
-    for (size_t i = 0; i < bufsiz; i++) {
+    for (size_t i = 0; i < valid_bufsiz; i++) {
         const auto& seq = code[buffer[i]];
         for (bool b : seq) {
             cur |= (b << cou);
             cou++;
             if (cou == 8) {
-                //out.put(cur);
                 ans.push_back(cur);
                 cur = 0;
                 cou = 0;
@@ -218,13 +192,12 @@ void tree::encode(std::vector<unsigned char>& ans) {
         }
     }
     if (cou) {
-        //out.put(cur);
         ans.push_back(cur);
     }
 }
 
 char tree::get_next() {
-    assert(bufsiz > pos + 1);
+    assert(valid_bufsiz > pos + 1);
     ++pos;
     return buffer[pos];
 }
@@ -238,22 +211,13 @@ unsigned int tree::get_uint() {
     return vec_to_uint(v);
 }
 
-std::string tree::decode(unsigned int count_bits) {
+std::string tree::decode(size_t count_bits) {
     if (root == -1) {
         return "";
     }
     int v = root;
-    //char cc;
-    //in >> cc;
-    //if(cc != ' ')
-    //    throw std::runtime_error(ERROR_ENC_FILE);
-
-
-    //in >> count_bits;
     std::string ans;
-    //std::cout<<"HI, NGR"<<std::endl;
     while (count_bits > 0) {
-        //std::cout<<"QQQ"<<count_bits<<std::endl;
         char c;
         c = get_next();
         unsigned char symbol = c;
@@ -270,7 +234,6 @@ std::string tree::decode(unsigned int count_bits) {
             }
             if (data[v].isLeaf) {
                 ans.push_back(data[v].c);
-                //std::cout<<data[v].c<<std::flush;
                 v = root;
             }
         }

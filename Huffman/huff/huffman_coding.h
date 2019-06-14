@@ -4,22 +4,25 @@
 #include<vector>
 #include<fstream>
 #include<cassert>
+#include<iostream>
 
-int const SIZE = (1 << 10);
+size_t const SIZE = (1 << 20);
 
 class tree {
 public:
-    tree() : root(0), counts(256, 0), pos(-1) {}
-    tree init_tree();
+    tree() : root(0), counts(256, 0), pos(-1), buffer(new unsigned char[SIZE]), cur_bufsiz(SIZE) {}
+    ~tree() { delete[] buffer; }
+    void init_tree();
     void nullcounts();
     void count_symbs();
-    tree read_tree(unsigned int sz, unsigned int alph);
+    void read_tree(size_t sz, size_t alph);
     std::string write_tree();
     void encode(std::vector<unsigned char> & ans);
-    std::string decode(unsigned int count_bits);
-    char buffer[SIZE];
-    int bufsiz;
-    int pos;
+    std::string decode(size_t count_bits);
+    unsigned char *buffer;
+    size_t cur_bufsiz;
+    size_t valid_bufsiz;
+    size_t pos;
 private:
     std::vector<int> counts;
     struct node {

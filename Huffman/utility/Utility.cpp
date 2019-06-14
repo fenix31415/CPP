@@ -37,9 +37,11 @@ void test(int step) {
     std::string out = TESTS_PATH + "zip" + std::to_string(step) + ".out";
     zip(in, tmp);
     unzip(tmp, out);
-    if (compare(in, out))
+    bool b = compare(in, out);
+    if (b)
         std::cout<<"OK\n";
     else std::cout<<"FAIL\n";
+    assert(b);
 }
 
 void test_compare() {
@@ -92,18 +94,67 @@ void test_zipping_() {
     std::cout<<"Ogk"<<std::endl;
 }
 
+void test_unzipping_(int step) {
+    std::cout << "testing " << step << " test..." << std::endl;
+    std::string in = TESTS_PATH + "unzip" + std::to_string(step) + ".in";
+    std::string out = TESTS_PATH + "unzip" + std::to_string(step) + ".out";
+    int norm = 1;
+    try {
+        unzip(in, out);
+    } catch (...) {
+        norm = 0;
+    }
+    assert(norm);
+    std::cout<<"OK\n";
+}
+
+void test_unzipping() {
+    std::cout<<"Testing unzip..\n";
+
+    for(int i = 1; i < 0; ++i) {
+        test_unzipping_(i);
+    }
+
+    std::cout<<"Unzipping done!\n\n";
+}
+
 void TEST() {
     std::cout<<"Testing..\n\n";
 
-    //test_compare();
+    test_compare();
 
-    //test_bits();
+    test_bits();
 
-    //test_zipping_();
+    test_zipping_();
 
     test_zipping();
 
+    test_unzipping();
+
     std::cout<<"Done!\n";
+}
+
+size_t read(std::istream& in, unsigned char *& buffer, size_t & size, size_t need, bool strong) {
+    if (size < need || buffer == nullptr) {
+        if(buffer != nullptr) {
+            delete[] buffer;
+        }
+        size_t nsz = std::max(need, SIZE);
+        buffer = new unsigned char[nsz];
+        size = nsz;
+    }
+    if (!strong) {
+        in.read(reinterpret_cast<char *>(buffer), need);
+        return in.gcount();
+    }
+    size_t readed = 0;
+    while (need > 0) {
+        assert(in);
+        in.read(reinterpret_cast<char *>(buffer + readed), need);
+        readed += in.gcount();
+        need -= in.gcount();
+    }
+    return readed;
 }
 
 void encode(std::istream& in, std::ostream& out) {
@@ -111,78 +162,54 @@ void encode(std::istream& in, std::ostream& out) {
         tree current;
         out.put('\0');
 
-        in >> std::noskipws;
-        in.read(current.buffer, SIZE);
-        current.bufsiz = in.gcount();
+        current.valid_bufsiz = read(in, current.buffer, current.cur_bufsiz, SIZE, false);
+        current.pos = -1;
 
         current.init_tree();
 
-        out << current.write_tree();
+        std::string tmp = current.write_tree();
+        out << tmp;
         std::vector<unsigned char> ans;
         current.encode(ans);
         for (auto i : ans)
             out << i;
-
     }
     out.put('\1');
+}
+
+unsigned int read_uint(std::istream& in) {
+    std::vector<unsigned char> v;
+    for(int i = 0; i < 4; ++i) {
+        char c;
+        in.get(c);
+        v.push_back(c);
+    }
+    return vec_to_uint(v);
 }
 
 void decode(std::istream& in, std::ostream& out) {
     char cc;
     while (in >> cc) {
-        //std::cout<<"decode while"<<std::endl;
         if(cc == '\1')
             break;
         tree current;
-        std::vector<unsigned char> v;
-        for(int i = 0; i < 4; ++i) {
-            char c;
-            in.get(c);
-            v.push_back(c);
-        }
-        unsigned int sz = vec_to_uint(v);
+        size_t sz = read_uint(in);
+        size_t alph = read_uint(in);
+        size_t need = sz + alph;
 
-
-        v.resize(0);
-        for(int i = 0; i < 4; ++i) {
-            char c;
-            in.get(c);
-            v.push_back(c);
-        }
-        unsigned int alph = vec_to_uint(v);
-
-        in >> std::noskipws;
-        unsigned int need = sz + alph;
-        in.read(current.buffer, need);
-        assert(need == in.gcount());
-        current.bufsiz = need;
+        current.valid_bufsiz = read(in, current.buffer, current.cur_bufsiz, need, true);
         current.pos = -1;
 
-        //std::cout<<"Reading tree"<<sz<<" "<<alph<<std::endl;
         current.read_tree(sz, alph);
 
-        //std::cout<<"Readed tree"<<std::endl;
-
-        v.resize(0);
-        for(int i = 0; i < 4; ++i) {
-            char c;
-            in.get(c);
-            v.push_back(c);
-        }
-        unsigned int lencode = vec_to_uint(v);
-        //std::cout<<lencode<<std::endl;
-        in >> std::noskipws;
+        size_t lencode = read_uint(in);
         need = 0;
         if (lencode > 0)
             need = (lencode - 1) / 8 + 1;
-        in.read(current.buffer, need);
-        //std::cout<<need<<" "<<in.gcount()<<std::endl;
-        assert(need == in.gcount());
-        current.bufsiz = need;
+
+        current.valid_bufsiz = read(in, current.buffer, current.cur_bufsiz, need, true);
         current.pos = -1;
         out << current.decode(lencode);
-
-        //std::cout<<"QQQ2"<<std::endl;
     }
 }
 
