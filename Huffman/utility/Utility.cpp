@@ -3,10 +3,12 @@
 #include <iostream>
 #include <string>
 #include <cassert>
+#include <exception>
 #include "Utility.h"
 
 const std::string TESTS_PATH = "Tests/";
 const int TESTS_COUNT = 6;
+const std::string ERROR_ENC_FILE = "Bad file";
 
 bool compare(std::string input_filename, std::string target_filename) {
     std::ifstream in;
@@ -52,27 +54,6 @@ void test_compare() {
     assert(compare(TESTS_PATH+"comp4.in", TESTS_PATH+"comp4.out"));
     assert(!compare(TESTS_PATH+"comp5.in", TESTS_PATH+"comp5.out"));
     std::cout<<"Comparing done!\n\n";
-}
-
-void test_bits_(unsigned int a) {
-    std::vector<unsigned char> v;
-    append(v, a);
-    unsigned int b = vec_to_uint(v);
-    assert(a == b);
-}
-
-void test_bits() {
-    std::cout<<"Testing bits..\n";
-    test_bits_(0);
-    test_bits_(1);
-    test_bits_(45);
-    test_bits_(128);
-    test_bits_(256);
-    test_bits_(31415926);
-    test_bits_(546841);
-    test_bits_(2251556);
-    test_bits_(4294967168);
-    std::cout<<"Bits done!\n\n";
 }
 
 void test_zipping() {
@@ -123,8 +104,6 @@ void TEST() {
 
     test_compare();
 
-    test_bits();
-
     test_zipping_();
 
     test_zipping();
@@ -149,7 +128,7 @@ size_t read(std::istream& in, unsigned char *& buffer, size_t & size, size_t nee
     }
     size_t readed = 0;
     while (need > 0) {
-        assert(in);
+        if (!in) throw std::runtime_error("Unexpected end of file");
         in.read(reinterpret_cast<char *>(buffer + readed), need);
         readed += in.gcount();
         need -= in.gcount();
@@ -162,15 +141,16 @@ void encode(std::istream& in, std::ostream& out) {
         tree current;
         out.put('\0');
 
-        current.valid_bufsiz = read(in, current.buffer, current.cur_bufsiz, SIZE, false);
-        current.pos = -1;
+        size_t cur_bufsiz = current.get_cur_bufsiz();
+        size_t valid_bufsiz = read(in, current.buffer, cur_bufsiz, SIZE, false);
+        current.init_buffer(valid_bufsiz, cur_bufsiz);
 
-        current.init_tree();
-
-        std::string tmp = current.write_tree();
-        out << tmp;
+        std::vector<unsigned char> tree;
         std::vector<unsigned char> ans;
-        current.encode(ans);
+        current.encode(tree, ans);
+
+        for (auto i : tree)
+            out << i;
         for (auto i : ans)
             out << i;
     }
@@ -178,18 +158,20 @@ void encode(std::istream& in, std::ostream& out) {
 }
 
 unsigned int read_uint(std::istream& in) {
-    std::vector<unsigned char> v;
+    unsigned int ans = 0;
     for(int i = 0; i < 4; ++i) {
         char c;
         in.get(c);
-        v.push_back(c);
+        ans |= (unsigned int)(unsigned char)c << (i * 8);
     }
-    return vec_to_uint(v);
+    return ans;
 }
 
 void decode(std::istream& in, std::ostream& out) {
     char cc;
+    bool started = false;
     while (in >> cc) {
+        started = true;
         if(cc == '\1')
             break;
         tree current;
@@ -197,8 +179,9 @@ void decode(std::istream& in, std::ostream& out) {
         size_t alph = read_uint(in);
         size_t need = sz + alph;
 
-        current.valid_bufsiz = read(in, current.buffer, current.cur_bufsiz, need, true);
-        current.pos = -1;
+        size_t cur_bufsiz = current.get_cur_bufsiz();
+        size_t valid_bufsiz = read(in, current.buffer, cur_bufsiz, need, true);
+        current.init_buffer(valid_bufsiz, cur_bufsiz);
 
         current.read_tree(sz, alph);
 
@@ -207,19 +190,26 @@ void decode(std::istream& in, std::ostream& out) {
         if (lencode > 0)
             need = (lencode - 1) / 8 + 1;
 
-        current.valid_bufsiz = read(in, current.buffer, current.cur_bufsiz, need, true);
-        current.pos = -1;
-        out << current.decode(lencode);
+        cur_bufsiz = current.get_cur_bufsiz();
+        valid_bufsiz = read(in, current.buffer, cur_bufsiz, need, true);
+        current.init_buffer(valid_bufsiz, cur_bufsiz);
+
+        out << current.decode_text(lencode);
     }
+    if (!started)
+        throw std::runtime_error(ERROR_ENC_FILE);
 }
 
 void zip(std::string input_filename, std::string target_filename) {
     std::ifstream in;
     in.open(input_filename);
-    std::ofstream out(target_filename);
 
     if (!in.is_open())
         throw std::runtime_error("Can't open in file");
+
+    std::ofstream out(target_filename);
+    if (!out.is_open())
+        throw std::runtime_error("Can't open out file");
 
     encode(in, out);
 
@@ -228,17 +218,22 @@ void zip(std::string input_filename, std::string target_filename) {
 
 void unzip(std::string input_filename, std::string target_filename) {
     std::ifstream in;
-    std::ofstream out(target_filename);
 
     in.open(input_filename);
 
     if (!in.is_open())
         throw std::runtime_error("Can't open in file");
 
-    decode(in, out);
 
-    in.close();
-    out.close();
+    std::ofstream out(target_filename);
+    if (!out.is_open())
+        throw std::runtime_error("Can't open out file");
+
+    try {
+        decode(in, out);
+    } catch (...) {
+        std::cout<<ERROR_ENC_FILE<<std::endl;
+    };
 }
 
 int main(int argc, char* argv[]) {
@@ -250,13 +245,24 @@ int main(int argc, char* argv[]) {
         return 0;
     }
     if (argc != 4) {
-        throw std::runtime_error("Usage: -type(-e/-d) in out");
+        std::cout<<"Usage: -type(-e/-d) in out"<<std::endl;
+        return 0;
     }
     std::string type(argv[1]);
     if (type == "-e") {
-        zip(std::string(argv[2]), std::string(argv[3]));
+        try {
+            zip(std::string(argv[2]), std::string(argv[3]));
+        } catch (const std::runtime_error& e) {
+            std::cout<<"Error: "<<e.what()<<std::endl;
+            return 0;
+        }
     } else if (type == "-d") {
-        unzip(std::string(argv[2]), std::string(argv[3]));
+        try {
+            unzip(std::string(argv[2]), std::string(argv[3]));
+        } catch (const std::runtime_error& e) {
+            std::cout<<"Error: "<<e.what()<<std::endl;
+            return 0;
+        }
     }
 
     return 0;

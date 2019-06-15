@@ -12,18 +12,25 @@ class tree {
 public:
     tree() : root(0), counts(256, 0), pos(-1), buffer(new unsigned char[SIZE]), cur_bufsiz(SIZE) {}
     ~tree() { delete[] buffer; }
-    void init_tree();
-    void nullcounts();
-    void count_symbs();
+
+    void init_buffer(size_t valid, size_t cur);
+    size_t get_cur_bufsiz();
+    void encode(std::vector<unsigned char> & tree, std::vector<unsigned char> & ans);
+
     void read_tree(size_t sz, size_t alph);
-    std::string write_tree();
-    void encode(std::vector<unsigned char> & ans);
-    std::string decode(size_t count_bits);
-    unsigned char *buffer;
+    std::string decode_text(size_t count_bits);
+    unsigned char * buffer;
+private:
+    void encode_text(std::vector<unsigned char> & ans);
+    void write_tree(std::vector<unsigned char> & ans);
+    void count_symbs();
+    void nullcounts();
+    void init_tree();
     size_t cur_bufsiz;
     size_t valid_bufsiz;
     size_t pos;
-private:
+    tree(const tree&) = delete;
+    void operator =(const tree&) = delete;
     std::vector<int> counts;
     struct node {
         bool isLeaf;
@@ -43,6 +50,5 @@ private:
 };
 
 void append(std::vector<unsigned char> & v, unsigned int a);
-unsigned int vec_to_uint(std::vector<unsigned char> a);
 
 #endif // HUFFMAN_CODING

@@ -111,8 +111,17 @@ void tree::dfs_code(std::vector <unsigned char> & ans, int id) {
     }
 }
 
-std::string tree::write_tree() {
-    std::string ans;
+void tree::init_buffer(size_t valid, size_t cur) {
+    pos = -1;
+    valid_bufsiz = valid;
+    cur_bufsiz = cur;
+}
+
+size_t tree::get_cur_bufsiz() {
+    return cur_bufsiz;
+}
+
+void tree::write_tree(std::vector<unsigned char> & ans) {
     std::vector<unsigned char> output;
     unsigned int tree_size = 0;
     if (root != -1) {
@@ -129,7 +138,6 @@ std::string tree::write_tree() {
     ans.insert(ans.end(), v.begin(), v.end());
     for (auto c : output)
         ans.push_back(c);
-    return ans;
 }
 
 int tree::generate_code(int i, std::vector <std::vector <bool>> & code, std::vector <bool> & st) {
@@ -155,15 +163,7 @@ void append(std::vector<unsigned char> & v, unsigned int a) {
     }
 }
 
-unsigned int vec_to_uint(std::vector<unsigned char> a) {
-    unsigned int ans = 0;
-    for(int i = 0; i < 4; ++i) {
-        ans |= (unsigned int)a[i] << (i * 8);
-    }
-    return ans;
-}
-
-void tree::encode(std::vector<unsigned char>& ans) {
+void tree::encode_text(std::vector<unsigned char>& ans) {
     std::vector<std::vector<bool>> code(256);
     std::vector<bool> st;
     if(root != -1)
@@ -203,15 +203,24 @@ char tree::get_next() {
 }
 
 unsigned int tree::get_uint() {
-    std::vector<unsigned char> v;
+
+    unsigned int ans = 0;
     for(int i = 0; i < 4; ++i) {
-        char c = get_next();
-        v.push_back((unsigned char)c);
+        unsigned char c = get_next();
+        ans |= (unsigned int)c << (i * 8);
     }
-    return vec_to_uint(v);
+    return ans;
+
 }
 
-std::string tree::decode(size_t count_bits) {
+void tree::encode(std::vector<unsigned char> & tree, std::vector<unsigned char> & ans) {
+    init_tree();
+    write_tree(tree);
+    encode_text(ans);
+}
+
+
+std::string tree::decode_text(size_t count_bits) {
     if (root == -1) {
         return "";
     }
