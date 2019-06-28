@@ -58,6 +58,7 @@ private:
         node_base *l, *r;
         node_base() : l(this), r(this) { }
         node_base(node_base* ll, node_base* rr) : l(ll), r(rr) { }
+        virtual ~node_base() = default;
         T& get_val() {
             return static_cast<node&>(*this).val;
         }
