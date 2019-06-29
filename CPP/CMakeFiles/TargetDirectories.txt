@@ -1,3 +1,0 @@
-/home/fenix/CPP/HW/CPP/CMakeFiles/rebuild_cache.dir
-/home/fenix/CPP/HW/CPP/CMakeFiles/search.dir
-/home/fenix/CPP/HW/CPP/CMakeFiles/edit_cache.dir
