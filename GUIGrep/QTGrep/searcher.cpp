@@ -90,12 +90,12 @@ void Searcher::get_result(std::vector<result::result_item> &ans) {
 }
 
 bool Searcher::incomplete() {
-    //std::unique_lock<std::mutex> lg(m);
+    std::unique_lock<std::mutex> lg(m);
     return current_result.incomplete;
 }
 
 size_t Searcher::get_count() {
-    //std::unique_lock<std::mutex> lg(m);
+    std::unique_lock<std::mutex> lg(m);
     return current_result.lines.size();
 }
 
