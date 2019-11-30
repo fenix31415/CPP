@@ -18,7 +18,8 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->statusBar->showMessage("Search started");
     });
     connect(ui->button_cancel, &QPushButton::clicked, this, [this] {
-        ui->statusBar->showMessage(("Canceled. Found " + std::to_string(ui->table_result->rowCount()) + " items").c_str());
+        size_t found = searcher.get_count();
+        ui->statusBar->showMessage(("Canceled. Found " + std::to_string(found) + " items").c_str());
         searcher.stop();
     });
     connect(&searcher, &Searcher::result_changed, this, [this]
@@ -45,7 +46,8 @@ MainWindow::MainWindow(QWidget *parent) :
         } else {
             status = "Search ended. ";
         }
-        status = status + "Found " + std::to_string(ui->table_result->rowCount()).c_str() + " items";
+        size_t found = searcher.get_count();
+        status = status + "Found " + std::to_string(found).c_str() + " items";
         //ui->statusBar->showMessage(("Found " + std::to_string(ui->table_result->rowCount()) + " items").c_str());
         ui->statusBar->showMessage(status);
     });

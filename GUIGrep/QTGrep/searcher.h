@@ -42,7 +42,7 @@ public:
     void stop();
 
     bool incomplete();
-    int how_gived();
+    size_t get_count();
 
 signals:
     void result_changed();

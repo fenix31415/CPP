@@ -90,12 +90,13 @@ void Searcher::get_result(std::vector<result::result_item> &ans) {
 }
 
 bool Searcher::incomplete() {
-    std::unique_lock<std::mutex> lg(m);
+    //std::unique_lock<std::mutex> lg(m);
     return current_result.incomplete;
 }
 
-int Searcher::how_gived() {
-    return current_result.gived;
+size_t Searcher::get_count() {
+    //std::unique_lock<std::mutex> lg(m);
+    return current_result.lines.size();
 }
 
 void Searcher::result::get_result(std::vector<result::result_item>& ans)
@@ -155,7 +156,7 @@ bool Searcher::prefix_find(const char *F, const char *P) {
         }
         if (ch == P[curr])
             ++curr;
-        if (curr == l) {
+        if (curr == l && current_result.lines.size() < 10000) {
             {
                 std::unique_lock<std::mutex> lg(m);
                 current_result.lines.push_back({F, std::to_string(ind - l + 1).c_str(), convertBuf(b)});
