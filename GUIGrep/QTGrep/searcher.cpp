@@ -85,11 +85,16 @@ void Searcher::start_searching(const QString &F, const QString &S)
 }
 
 void Searcher::get_result(std::vector<result::result_item> &ans) {
+    std::unique_lock<std::mutex> lg(m);
     current_result.get_result(ans);
 }
 
 bool Searcher::incomplete() {
     return current_result.incomplete;
+}
+
+int Searcher::how_gived() {
+    return current_result.gived;
 }
 
 void Searcher::result::get_result(std::vector<result::result_item>& ans)

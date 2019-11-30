@@ -42,6 +42,7 @@ public:
     void stop();
 
     bool incomplete();
+    int how_gived();
 
 signals:
     void result_changed();
