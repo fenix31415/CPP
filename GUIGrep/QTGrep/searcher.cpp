@@ -90,6 +90,7 @@ void Searcher::get_result(std::vector<result::result_item> &ans) {
 }
 
 bool Searcher::incomplete() {
+    std::unique_lock<std::mutex> lg(m);
     return current_result.incomplete;
 }
 
