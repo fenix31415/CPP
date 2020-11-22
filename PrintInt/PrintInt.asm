@@ -15,25 +15,25 @@ _start:
                 syscall
 
 print_number:
+				push rax
+				push rdx
+				push rdi
+				push rbx
+				push rbp
                 mov             rbp, rsp		;remember rsp
                 mov             rdi, rsp		;rdi - msg
                 sub             rsp, 24
-
                 dec             rdi
                 mov             byte [rdi], 10	;add \n
-
                 or              rax, rax
                 jz              write_zero		;0
-
                 mov             ebx, 10
 loop:
                 xor             edx, edx		;ax=00ax/bx
                 div             rbx				;dx=00ax%bx
-
                 add             edx, '0'
                 dec             rdi
                 mov             byte [rdi], dl	;\n...(cur)
-
                 or              rax, rax
                 jnz             loop
                 jmp             print
@@ -51,4 +51,10 @@ print:
                 syscall			;rax - syswrite(1), rdi - in(0)/out(1), rsi - msg, rdx - length
 
                 mov             rsp, rbp
+                
+				pop rbp
+                pop rbx
+				pop rdi
+				pop rdx
+				pop rax
                 ret
